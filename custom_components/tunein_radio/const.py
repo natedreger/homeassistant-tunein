@@ -40,6 +40,11 @@ DEFAULT_FAVORITES: Final = [
 ATTR_STATION_ID: Final = "station_id"
 ATTR_QUERY: Final = "query"
 
+# Option: the media player the favorites select controls and follows.
+CONF_PLAYER: Final = "player"
+# Sent with (media player entity ID, station ID) whenever a station is played.
+SIGNAL_PLAY: Final = f"{DOMAIN}_play"
+
 SERVICE_PLAY: Final = "play"
 SERVICE_ADD_FAVORITE: Final = "add_favorite"
 SERVICE_REMOVE_FAVORITE: Final = "remove_favorite"

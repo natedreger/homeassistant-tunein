@@ -21,10 +21,11 @@ from homeassistant.components.media_source import (
     Unresolvable,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from . import get_data
 from .api import Station, TuneInError
-from .const import DOMAIN, NAME
+from .const import DOMAIN, NAME, SIGNAL_PLAY
 
 # Not every HA release lets media sources take part in search.
 SUPPORTS_SEARCH = hasattr(MediaSource, "async_search_media")
@@ -80,6 +81,11 @@ class TuneInMediaSource(MediaSource):
             streams = await get_data(self.hass).client.tune(station_id)
         except TuneInError as err:
             raise Unresolvable(str(err)) from err
+        # Every way of playing a station on a speaker comes through here.
+        if item.target_media_player:
+            async_dispatcher_send(
+                self.hass, SIGNAL_PLAY, item.target_media_player, station_id
+            )
         return PlayMedia(streams[0].url, streams[0].mime_type)
 
     async def async_browse_media(self, item: MediaSourceItem) -> BrowseMediaSource:

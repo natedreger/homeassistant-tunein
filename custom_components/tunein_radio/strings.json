@@ -9,6 +9,18 @@
       "single_instance_allowed": "TuneIn Radio is already set up."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "player": "Speaker"
+        },
+        "data_description": {
+          "player": "The media player the TuneIn favorites dropdown plays on and follows. Leave empty to use OwnTone."
+        }
+      }
+    }
+  },
   "services": {
     "play": {
       "name": "Play station",

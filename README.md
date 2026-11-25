@@ -4,28 +4,11 @@ A Home Assistant custom integration that searches TuneIn (RadioTime OPML API, pl
 
 ## Favorites entity
 
-`select.tunein_favorites` lists your favorites and updates when you add or remove one. Choosing a station only selects it. To play it, pass its `station_id` attribute to `tunein_radio.play`, for example from an automation (replace `media_player.owntone` with your player):
+`select.tunein_favorites` lists your favorites. Choosing one plays it on one speaker: by default your OwnTone server, or the player you pick in the integration's options (**Settings → Devices & services → TuneIn Radio → Configure**).
 
-```yaml
-triggers:
-  - trigger: state
-    entity_id: select.tunein_favorites
-    not_to:
-      - unknown
-      - unavailable
-conditions:
-  - condition: template
-    value_template: >
-      {{ trigger.from_state is not none
-         and trigger.from_state.state != 'unavailable'
-         and trigger.from_state.state != trigger.to_state.state }}
-actions:
-  - action: tunein_radio.play
-    target:
-      entity_id: media_player.owntone
-    data:
-      station_id: "{{ trigger.to_state.attributes.station_id }}"
-```
+It also shows which station that speaker is playing, including one started from the TuneIn panel, the media browser or `tunein_radio.play`. It is `unknown` when the speaker is stopped, is playing something else, or is playing a station that isn't a favorite. The `station_id` and `station_name` attributes are filled in for non-favorites too.
+
+Stations started outside Home Assistant, for example from OwnTone's own web page, aren't recognized.
 
 ## Install
 
