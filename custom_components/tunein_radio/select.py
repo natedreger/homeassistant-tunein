@@ -1,9 +1,8 @@
 """Select entity that plays favorite stations and shows which one is playing.
 
-Players don't report which TuneIn station they are playing (OwnTone only gives a
-queue item number), so this remembers the station that was started and the first
-new media_content_id seen afterwards. A different ID later means something else
-is playing.
+Players don't report which TuneIn station they are playing, so this
+remembers the station that was started and the first new media_content_id seen
+afterwards. A different ID later means something else is playing.
 """
 
 from __future__ import annotations
@@ -17,14 +16,12 @@ from homeassistant.components.media_player import (
     ATTR_MEDIA_CONTENT_TYPE,
     DOMAIN as MEDIA_PLAYER_DOMAIN,
     SERVICE_PLAY_MEDIA,
-    MediaPlayerEntityFeature,
     MediaType,
 )
 from homeassistant.components.select import SelectEntity
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
@@ -32,11 +29,13 @@ from homeassistant.helpers.restore_state import RestoredExtraData, RestoreEntity
 
 from . import TuneInConfigEntry, media_source_id
 from .api import Station, TuneInError
-from .const import ATTR_STATION_ID, CONF_PLAYER, OWNTONE_PLATFORM, PANEL_ICON, SIGNAL_PLAY
+from .const import ATTR_STATION_ID, CONF_PLAYER, PANEL_ICON, SIGNAL_PLAY
 
 # How long to wait for the player to report a new media_content_id.
 START_TIMEOUT = 20
 ACTIVE_STATES = ("playing", "paused", "buffering", "on")
+# Shown when no favorite is playing; without it Home Assistant says "Unknown".
+BLANK = " "
 
 
 async def async_setup_entry(
@@ -46,21 +45,6 @@ async def async_setup_entry(
 ) -> None:
     """Add the favorites select."""
     async_add_entities([FavoritesSelect(hass, entry)])
-
-
-def _owntone_player(hass: HomeAssistant) -> str | None:
-    """The OwnTone server entity (its output "zones" can't play media)."""
-    return next(
-        (
-            e.entity_id
-            for e in er.async_get(hass).entities.values()
-            if e.platform == OWNTONE_PLATFORM
-            and e.domain == MEDIA_PLAYER_DOMAIN
-            and not e.disabled
-            and e.supported_features & MediaPlayerEntityFeature.PLAY_MEDIA
-        ),
-        None,
-    )
 
 
 def _labels(stations: list[Station]) -> dict[str, str]:
@@ -84,7 +68,7 @@ class FavoritesSelect(SelectEntity, RestoreEntity):
         self._client = entry.runtime_data.client
         self._favorites = entry.runtime_data.favorites
         self._attr_unique_id = f"{entry.entry_id}_favorites"
-        self._player = entry.options.get(CONF_PLAYER) or _owntone_player(hass)
+        self._player = entry.options.get(CONF_PLAYER)
         # The station last started on the player:
         # {"station_id", "name", "before", "content_id"}; content_id is None
         # until the player reports the new stream.
@@ -204,11 +188,11 @@ class FavoritesSelect(SelectEntity, RestoreEntity):
 
     def _refresh(self) -> None:
         self._ids = _labels(self._favorites.stations)
-        self._attr_options = list(self._ids)
+        self._attr_options = [BLANK, *self._ids]
         playing = self._playing()
         station_id = playing["station_id"] if playing else None
         self._attr_current_option = next(
-            (label for label, sid in self._ids.items() if sid == station_id), None
+            (label for label, sid in self._ids.items() if sid == station_id), BLANK
         )
 
     @property
@@ -223,6 +207,9 @@ class FavoritesSelect(SelectEntity, RestoreEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Play a favorite on the speaker."""
+        if option == BLANK:  # nothing to play; show the real state again
+            self._changed()
+            return
         if not self._player:
             raise HomeAssistantError(
                 "No speaker for TuneIn favorites; choose one in the integration options"

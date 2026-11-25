@@ -2,7 +2,13 @@
   "config": {
     "step": {
       "user": {
-        "description": "Add TuneIn Radio? You get a TuneIn sidebar panel, plus TuneIn in the media browser of every media player, including OwnTone."
+        "description": "You get a TuneIn sidebar panel, plus TuneIn in the media browser of your media players.",
+        "data": {
+          "player": "Default media player"
+        },
+        "data_description": {
+          "player": "The TuneIn favorites dropdown plays on and follows this player, and the TuneIn panel selects it by default. You can change it later."
+        }
       }
     },
     "abort": {
@@ -13,10 +19,10 @@
     "step": {
       "init": {
         "data": {
-          "player": "Speaker"
+          "player": "Default media player"
         },
         "data_description": {
-          "player": "The media player the TuneIn favorites dropdown plays on and follows. Leave empty to use OwnTone."
+          "player": "The media player the TuneIn favorites dropdown plays on and follows. The TuneIn panel also selects it by default."
         }
       }
     }
@@ -24,7 +30,7 @@
   "services": {
     "play": {
       "name": "Play station",
-      "description": "Plays a TuneIn station on the target media players, for example an OwnTone speaker.",
+      "description": "Plays a TuneIn station on the target media players.",
       "fields": {
         "station_id": {
           "name": "Station ID",

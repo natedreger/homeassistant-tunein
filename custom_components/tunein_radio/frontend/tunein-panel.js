@@ -93,7 +93,7 @@ class TuneInRadioPanel extends HTMLElement {
       this._favorites = favorites;
       this._players = players;
       if (this._player !== BROWSER && !players.some((p) => p.entity_id === this._player)) {
-        this._player = players.find((p) => p.owntone)?.entity_id || players[0]?.entity_id || BROWSER;
+        this._player = players.find((p) => p.default)?.entity_id || players[0]?.entity_id || BROWSER;
       }
     } catch (err) {
       this._status(`Couldn't load TuneIn: ${err.message || err}`);
@@ -260,7 +260,7 @@ class TuneInRadioPanel extends HTMLElement {
 
   _renderPlayers() {
     const opts = this._players.map(
-      (p) => `<option value="${esc(p.entity_id)}">${p.owntone ? "OwnTone · " : ""}${esc(p.name)}</option>`
+      (p) => `<option value="${esc(p.entity_id)}">${esc(p.name)}</option>`
     );
     opts.push(`<option value="${BROWSER}">This browser</option>`);
     const sel = this.$("#player");

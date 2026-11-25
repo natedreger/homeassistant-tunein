@@ -2,8 +2,7 @@
 
 Provides:
 - a media source (TuneIn favorites, categories and search) that any media
-  player can browse, including OwnTone players from the `forked_daapd`
-  integration;
+  player can browse;
 - a sidebar panel with search, favorites and a speaker picker;
 - a `select` entity listing the favorites;
 - `tunein_radio.play`, `add_favorite` and `remove_favorite` actions.

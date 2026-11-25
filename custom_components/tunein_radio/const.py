@@ -5,10 +5,6 @@ from typing import Final
 DOMAIN: Final = "tunein_radio"
 NAME: Final = "TuneIn Radio"
 
-# Platform name of Home Assistant's OwnTone integration. Its media players are
-# offered first in the panel's speaker picker.
-OWNTONE_PLATFORM: Final = "forked_daapd"
-
 PANEL_URL_PATH: Final = "tunein"
 PANEL_WEBCOMPONENT: Final = "tunein-radio-panel"
 PANEL_STATIC_URL: Final = f"/{DOMAIN}_static"
@@ -40,7 +36,7 @@ DEFAULT_FAVORITES: Final = [
 ATTR_STATION_ID: Final = "station_id"
 ATTR_QUERY: Final = "query"
 
-# Option: the media player the favorites select controls and follows.
+# Option: the default media player, chosen at setup.
 CONF_PLAYER: Final = "player"
 # Sent with (media player entity ID, station ID) whenever a station is played.
 SIGNAL_PLAY: Final = f"{DOMAIN}_play"

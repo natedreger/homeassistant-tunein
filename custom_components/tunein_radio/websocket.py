@@ -14,10 +14,9 @@ from homeassistant.components.media_player import (
 from homeassistant.const import ATTR_SUPPORTED_FEATURES
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
 
 from .api import Station, TuneInError
-from .const import DOMAIN, OWNTONE_PLATFORM
+from .const import CONF_PLAYER, DOMAIN
 
 
 @callback
@@ -133,25 +132,25 @@ async def ws_remove_favorite(
 @websocket_api.websocket_command({vol.Required("type"): f"{DOMAIN}/players"})
 @callback
 def ws_players(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
-    """List media players that can play a URL, OwnTone ones first.
-
-    OwnTone's per-output "zone" entities can't play media, so they drop out
-    here; the OwnTone server entity plays to whichever outputs are enabled.
-    """
-    registry = er.async_get(hass)
+    """List media players that can play a URL, flagging the default one."""
+    default = next(
+        (
+            entry.options.get(CONF_PLAYER)
+            for entry in hass.config_entries.async_entries(DOMAIN)
+        ),
+        None,
+    )
     players = []
     for state in hass.states.async_all(MEDIA_PLAYER_DOMAIN):
         features = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
         if not features & MediaPlayerEntityFeature.PLAY_MEDIA:
             continue
-        entry = registry.async_get(state.entity_id)
-        platform = entry.platform if entry else None
         players.append(
             {
                 "entity_id": state.entity_id,
                 "name": state.attributes.get("friendly_name", state.entity_id),
-                "owntone": platform == OWNTONE_PLATFORM,
+                "default": state.entity_id == default,
             }
         )
-    players.sort(key=lambda p: (not p["owntone"], p["name"].lower()))
+    players.sort(key=lambda p: p["name"].lower())
     connection.send_result(msg["id"], players)

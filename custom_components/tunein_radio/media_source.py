@@ -6,8 +6,8 @@ Identifiers:
     "browse/<query>"    a TuneIn Browse.ashx category, e.g. browse/c=music
     "station/<id>"      a playable station, e.g. station/s27454
 
-Station items use an audio MIME type as their content type, so the OwnTone
-(`forked_daapd`) media browser, which filters on MIME type, lists them.
+Station items use an audio MIME type as their content type, so media browsers
+that filter on MIME type list them.
 """
 
 from __future__ import annotations
