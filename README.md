@@ -19,17 +19,6 @@ The TuneIn panel selects the default player until you pick another one there.
 
 It is a remote control for the default player, not a separate audio stream: it shows as idle when that player is playing something else.
 
-```yaml
-- action: media_player.select_source
-  target:
-    entity_id: media_player.tunein
-  data:
-    source: KCRW 89.9 (Santa Monica, CA)
-- action: media_player.media_stop
-  target:
-    entity_id: media_player.tunein
-```
-
 ## Favorites entity
 
 `select.tunein_favorites` lists your favorites. Choosing one plays it on one speaker: the default media player.
