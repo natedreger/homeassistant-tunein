@@ -36,3 +36,5 @@ Requires Home Assistant 2026.2 or newer.
 ## Disclaimer
 
 This is an unofficial integration. It is not affiliated with, endorsed by or sponsored by TuneIn. The TuneIn name and logo are trademarks of TuneIn, used here only to identify the service.
+
+<a href="https://www.buymeacoffee.com/dregsoft"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="50"></a>
