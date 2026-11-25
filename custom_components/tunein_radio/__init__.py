@@ -5,6 +5,7 @@ Provides:
   player can browse, including OwnTone players from the `forked_daapd`
   integration;
 - a sidebar panel with search, favorites and a speaker picker;
+- a `select` entity listing the favorites;
 - `tunein_radio.play`, `add_favorite` and `remove_favorite` actions.
 """
 
@@ -26,7 +27,7 @@ from homeassistant.components.media_player import (
     MediaType,
 )
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
-from homeassistant.const import ATTR_ENTITY_ID
+from homeassistant.const import ATTR_ENTITY_ID, Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
@@ -54,6 +55,7 @@ from .favorites import Favorites
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+PLATFORMS = [Platform.SELECT]
 
 
 @dataclass
@@ -153,11 +155,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: TuneInConfigEntry) -> bo
     entry.runtime_data = TuneInData(client, favorites)
 
     await _async_register_panel(hass)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: TuneInConfigEntry) -> bool:
     """Unload a config entry."""
+    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        return False
     frontend.async_remove_panel(hass, PANEL_URL_PATH)
     return True
 

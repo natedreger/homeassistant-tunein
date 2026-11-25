@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from homeassistant.core import HomeAssistant
+from collections.abc import Callable
+
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.storage import Store
 
 from .api import Station
@@ -16,6 +18,7 @@ class Favorites:
         """Initialize the store."""
         self._store: Store[dict] = Store(hass, STORAGE_VERSION, STORAGE_KEY)
         self._stations: list[Station] = []
+        self._listeners: list[Callable[[], None]] = []
 
     async def async_load(self) -> None:
         """Load favorites, seeding the defaults on first run."""
@@ -28,6 +31,18 @@ class Favorites:
 
     async def _async_save(self) -> None:
         await self._store.async_save({"stations": [s.as_dict() for s in self._stations]})
+
+    @callback
+    def async_add_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
+        """Call `listener` after each change. Returns a function that unsubscribes."""
+        self._listeners.append(listener)
+        return lambda: self._listeners.remove(listener)
+
+    async def _async_changed(self) -> None:
+        """Save, then tell listeners."""
+        await self._async_save()
+        for listener in list(self._listeners):
+            listener()
 
     @property
     def stations(self) -> list[Station]:
@@ -46,7 +61,7 @@ class Favorites:
                 break
         else:
             self._stations.append(station)
-        await self._async_save()
+        await self._async_changed()
 
     async def async_remove(self, station_id: str) -> bool:
         """Remove a favorite. Returns False if it wasn't there."""
@@ -54,5 +69,5 @@ class Favorites:
         self._stations = [s for s in self._stations if s.id != station_id]
         if len(self._stations) == before:
             return False
-        await self._async_save()
+        await self._async_changed()
         return True
