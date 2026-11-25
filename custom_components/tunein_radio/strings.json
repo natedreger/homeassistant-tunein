@@ -7,7 +7,7 @@
           "player": "Default media player"
         },
         "data_description": {
-          "player": "The TuneIn favorites dropdown plays on and follows this player, and the TuneIn panel selects it by default. You can change it later."
+          "player": "The media player TuneIn plays on."
         }
       }
     },
@@ -22,7 +22,7 @@
           "player": "Default media player"
         },
         "data_description": {
-          "player": "The media player the TuneIn favorites dropdown plays on and follows. The TuneIn panel also selects it by default."
+          "player": "The media player TuneIn plays on."
         }
       }
     }

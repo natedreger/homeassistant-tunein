@@ -8,6 +8,28 @@ Add **TuneIn Radio** under **Settings → Devices & services** and choose a defa
 
 The TuneIn panel selects the default player until you pick another one there.
 
+## TuneIn media player
+
+`media_player.tunein` plays through the default media player, so dashboards and automations can control the radio without naming the speaker.
+
+- **Source** lists your favorites. You can also pick any station in its media browser.
+- **Play** resumes a paused station, or starts the last station again.
+- **Pause, stop, volume and mute** are passed to the default player, where it supports them.
+- It shows the station name and logo, plus track information if the default player reports it.
+
+It is a remote control for the default player, not a separate audio stream: it shows as idle when that player is playing something else.
+
+```yaml
+- action: media_player.select_source
+  target:
+    entity_id: media_player.tunein
+  data:
+    source: KCRW 89.9 (Santa Monica, CA)
+- action: media_player.media_stop
+  target:
+    entity_id: media_player.tunein
+```
+
 ## Favorites entity
 
 `select.tunein_favorites` lists your favorites. Choosing one plays it on one speaker: the default media player.

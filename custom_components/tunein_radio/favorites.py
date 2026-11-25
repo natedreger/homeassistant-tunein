@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Callable
 
 from homeassistant.core import HomeAssistant, callback
@@ -9,6 +10,15 @@ from homeassistant.helpers.storage import Store
 
 from .api import Station
 from .const import DEFAULT_FAVORITES, STORAGE_KEY, STORAGE_VERSION
+
+
+def station_labels(stations: list[Station]) -> dict[str, str]:
+    """Map display name -> station ID, adding the ID where names collide."""
+    names = Counter(s.name for s in stations)
+    return {
+        (s.name if names[s.name] == 1 else f"{s.name} [{s.id}]"): s.id
+        for s in stations
+    }
 
 
 class Favorites:

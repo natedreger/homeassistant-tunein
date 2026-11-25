@@ -13,26 +13,34 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlowWithReload,
 )
-from homeassistant.core import callback
-from homeassistant.helpers import selector
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er, selector
 
 from .const import CONF_PLAYER, DOMAIN, NAME
 
-# Only offer players that can be told to play a stream.
-PLAYER_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_PLAYER): selector.EntitySelector(
-            selector.EntitySelectorConfig(
-                filter=selector.EntityFilterSelectorConfig(
-                    domain=MEDIA_PLAYER_DOMAIN,
-                    supported_features=[
-                        "media_player.MediaPlayerEntityFeature.PLAY_MEDIA"
-                    ],
+
+def _player_schema(hass: HomeAssistant) -> vol.Schema:
+    """Offer players that can play a stream, except TuneIn's own."""
+    own = [
+        entry.entity_id
+        for entry in er.async_get(hass).entities.values()
+        if entry.platform == DOMAIN and entry.domain == MEDIA_PLAYER_DOMAIN
+    ]
+    return vol.Schema(
+        {
+            vol.Required(CONF_PLAYER): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    exclude_entities=own,
+                    filter=selector.EntityFilterSelectorConfig(
+                        domain=MEDIA_PLAYER_DOMAIN,
+                        supported_features=[
+                            "media_player.MediaPlayerEntityFeature.PLAY_MEDIA"
+                        ],
+                    ),
                 )
             )
-        )
-    }
-)
+        }
+    )
 
 
 class TuneInConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -52,7 +60,9 @@ class TuneInConfigFlow(ConfigFlow, domain=DOMAIN):
         """Pick the default media player."""
         if user_input is not None:
             return self.async_create_entry(title=NAME, data={}, options=user_input)
-        return self.async_show_form(step_id="user", data_schema=PLAYER_SCHEMA)
+        return self.async_show_form(
+            step_id="user", data_schema=_player_schema(self.hass)
+        )
 
 
 class TuneInOptionsFlow(OptionsFlowWithReload):
@@ -67,6 +77,6 @@ class TuneInOptionsFlow(OptionsFlowWithReload):
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(
-                PLAYER_SCHEMA, self.config_entry.options
+                _player_schema(self.hass), self.config_entry.options
             ),
         )

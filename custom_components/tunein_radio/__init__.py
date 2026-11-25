@@ -4,6 +4,7 @@ Provides:
 - a media source (TuneIn favorites, categories and search) that any media
   player can browse;
 - a sidebar panel with search, favorites and a speaker picker;
+- a `media_player` entity that plays through the default media player;
 - a `select` entity listing the favorites;
 - `tunein_radio.play`, `add_favorite` and `remove_favorite` actions.
 """
@@ -39,6 +40,7 @@ from .api import Station, TuneInClient, TuneInError
 from .const import (
     ATTR_QUERY,
     ATTR_STATION_ID,
+    CONF_PLAYER,
     DOMAIN,
     PANEL_ICON,
     PANEL_STATIC_URL,
@@ -48,13 +50,15 @@ from .const import (
     SERVICE_ADD_FAVORITE,
     SERVICE_PLAY,
     SERVICE_REMOVE_FAVORITE,
+    media_source_id,
 )
 from .favorites import Favorites
+from .tracker import Tracker
 
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
-PLATFORMS = [Platform.SELECT]
+PLATFORMS = [Platform.MEDIA_PLAYER, Platform.SELECT]
 
 
 @dataclass
@@ -63,14 +67,10 @@ class TuneInData:
 
     client: TuneInClient
     favorites: Favorites
+    tracker: Tracker
 
 
 type TuneInConfigEntry = ConfigEntry[TuneInData]
-
-
-def media_source_id(station_id: str) -> str:
-    """Media-source URI that resolves to a station's stream."""
-    return f"media-source://{DOMAIN}/station/{station_id}"
 
 
 def get_data(hass: HomeAssistant) -> TuneInData:
@@ -151,7 +151,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: TuneInConfigEntry) -> bo
 
     favorites = Favorites(hass)
     await favorites.async_load()
-    entry.runtime_data = TuneInData(client, favorites)
+    tracker = Tracker(hass, client, favorites, entry.options.get(CONF_PLAYER))
+    await tracker.async_start()
+    entry.async_on_unload(tracker.async_stop)
+    entry.runtime_data = TuneInData(client, favorites, tracker)
 
     await _async_register_panel(hass)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

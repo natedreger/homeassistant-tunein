@@ -14,6 +14,7 @@ from homeassistant.components.media_player import (
 from homeassistant.const import ATTR_SUPPORTED_FEATURES
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 
 from .api import Station, TuneInError
 from .const import CONF_PLAYER, DOMAIN
@@ -140,10 +141,14 @@ def ws_players(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
         ),
         None,
     )
+    registry = er.async_get(hass)
     players = []
     for state in hass.states.async_all(MEDIA_PLAYER_DOMAIN):
         features = state.attributes.get(ATTR_SUPPORTED_FEATURES, 0)
         if not features & MediaPlayerEntityFeature.PLAY_MEDIA:
+            continue
+        entry = registry.async_get(state.entity_id)
+        if entry and entry.platform == DOMAIN:  # TuneIn's own player
             continue
         players.append(
             {

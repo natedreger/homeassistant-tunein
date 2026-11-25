@@ -44,3 +44,8 @@ SIGNAL_PLAY: Final = f"{DOMAIN}_play"
 SERVICE_PLAY: Final = "play"
 SERVICE_ADD_FAVORITE: Final = "add_favorite"
 SERVICE_REMOVE_FAVORITE: Final = "remove_favorite"
+
+
+def media_source_id(station_id: str) -> str:
+    """Media-source URI that resolves to a station's stream."""
+    return f"media-source://{DOMAIN}/station/{station_id}"
