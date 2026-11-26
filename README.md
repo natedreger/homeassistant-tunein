@@ -12,16 +12,16 @@ The TuneIn panel selects the default player until you pick another one there.
 
 `media_player.tunein` plays through the default media player, so dashboards and automations can control the radio without naming the speaker.
 
-## Disclaimer
-
-This has only been proven to work with OwnTone (forked-daaped)
-
 - **Source** lists your favorites. You can also pick any station in its media browser.
 - **Play** resumes a paused station, or starts the last station again.
 - **Pause, stop, volume and mute** are passed to the default player, where it supports them.
 - It shows the station name and logo, plus track information if the default player reports it.
 
 It is a remote control for the default player, not a separate audio stream: it shows as idle when that player is playing something else.
+
+### Note
+
+This has only been proven to work with OwnTone (forked-daapd)
 
 ## Favorites entity
 
@@ -33,7 +33,7 @@ Stations started outside Home Assistant, for example from the player's own app o
 
 ## Install
 
-In marketplace, add this repository as a custom repository (category **Integration**), and restart Home Assistant. Or copy `custom_components/tunein_radio` into your HA `config/custom_components/`.
+In Marketplace, add this repository as a custom repository (category **Integration**), and restart Home Assistant. Or copy `custom_components/tunein_radio` into your HA `config/custom_components/`.
 
 Requires Home Assistant 2026.2 or newer.
 
