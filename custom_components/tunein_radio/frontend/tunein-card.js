@@ -1,13 +1,14 @@
 // TuneIn card: Home Assistant's media control card, with more attributes below it.
 const LABELS = {
   media_show: "Show",
-  media_songname: "Song",
+  media_song_name: "Song",
   media_artist: "Artist",
+  media_album_name: "Album",
   station_name: "Station",
   station_id: "Station ID",
   player: "Speaker",
 };
-const DEFAULT_ATTRIBUTES = ["media_show", "media_songname"];
+const DEFAULT_ATTRIBUTES = ["media_show", "media_song_name"];
 
 const label = (name) =>
   LABELS[name] || name.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());

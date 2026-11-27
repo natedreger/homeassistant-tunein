@@ -1,6 +1,13 @@
 - 88Nine Radio Milwaukee - 
-    Station : 
+    Station : s24211
     API Address : https://precise-fish-444.convex.cloud/api/query
     Req Body : {"path":"plays:currentByStation","args":{"stationSlug":"88nine"},"format":"json"}
-- KCRW - https://tracklist-api.kcrw.com/Simulcast
-- KCRW Eclectic24 - https://tracklist-api.kcrw.com/Music
+- KCRW - 
+    Station : s32152
+    API Address : https://tracklist-api.kcrw.com/Simulcast
+- KCRW Eclectic24 - 
+    Station : s25510
+    API Address : https://tracklist-api.kcrw.com/Music
+- Birmingham Mountain Radio - 
+    Station : s131284
+    API Address : https://streamdb3web.securenetsystems.net/player_status_update/WBMR_history.xml

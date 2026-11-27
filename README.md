@@ -15,7 +15,7 @@ The TuneIn panel selects the default player until you pick another one there.
 - **Source** lists your favorites. You can also pick any station in its media browser.
 - **Play** resumes a paused station, or starts the last station again.
 - **Pause, stop, volume and mute** are passed to the default player, where it supports them.
-- It shows the station name and logo, and what is on air, checked every 30 seconds. See [Show and song](#show-and-song).
+- It shows the station name, the song's artwork or else the station logo, and what is on air, checked every 30 seconds. See [Show and song](#show-and-song).
 
 It is a remote control for the default player, not a separate audio stream: it shows as idle when that player is playing something else.
 
@@ -31,7 +31,9 @@ While a station plays on the default player, `media_player.tunein` has:
 |---|---|
 | `media_show` | Current show |
 | `media_artist` | Artist on air |
-| `media_songname` | Song on air |
+| `media_song_name` | Song on air |
+| `media_album_name` | Album of that song, where the source gives one |
+| `media_album_art` | Address of that song's artwork, where the source gives one |
 
 These come from TuneIn, which only has them for some stations. You can override it with a station's own API (see below).
 
@@ -48,12 +50,18 @@ Some APIs need data sent with a `POST` request. Enter that JSON as the **Request
 - Address: `https://precise-fish-444.convex.cloud/api/query`
 - Request body: `{"path":"plays:currentByStation","args":{"stationSlug":"88nine"},"format":"json"}`
 
-The address must return JSON. Fields can be nested, and in a list the newest entry must come first.
+The address must return JSON or XML. In XML, the tag names are the field names. Fields can be nested, and in a list the newest entry must come first.
 
 - **Show:** `program_title`, `programName`, `program_name`, `show_name`, `showName` or `show`.
 - **Song:** an object with both an artist (`artist`, `artist_name` or `artistName`) and a title (`title`, `song`, `track`, `song_title`, `songTitle` or `trackName`).
 
-Anything under `next`, `upNext`, `upcoming` or `playing_next` is skipped. The artist can be a list of names. An object is ignored if it started more than 15 minutes ago, going by `datetime` (with a time zone) or `playedAt` (Unix time).
+- **Album (optional):** `album`, `albumName`, `album_name` or `collectionName`, in the same object as the song.
+
+- **Artwork (optional):** a web address in `albumImageLarge`, `albumImage`, `artworkUrl`, `artwork_url`, `albumArt`, `album_art`, `artwork`, `cover`, `coverUrl` or `art`, in the same object as the song.
+
+Anything under `next`, `upNext`, `upcoming` or `playing_next` is skipped. The artist can be a list of names. An object is ignored if it started more than 15 minutes ago, going by `datetime` (with a time zone) `programStartTS` (as SecureNet Systems writes it, read as UTC) or `playedAt` (Unix time). Entries with an empty artist or title are skipped.
+
+For example, Birmingham Mountain Radio (`s131284`): `https://streamdb3web.securenetsystems.net/player_status_update/WBMR_history.xml`
 
 ## Dashboard card
 
@@ -64,7 +72,7 @@ type: custom:tunein-card
 entity: media_player.tunein
 attributes:
   - media_show
-  - media_songname
+  - media_song_name
 ```
 
 `attributes` takes any attributes of the media player, in the order to show them. Without it, the card shows the show and song. Empty ones are hidden. The card's title is the station name.

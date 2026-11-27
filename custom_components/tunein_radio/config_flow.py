@@ -18,8 +18,9 @@ from homeassistant.config_entries import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er, selector
 
-from .api import STATION_ID_RE
+from .api import STATION_ID_RE, TuneInError
 from .const import ATTR_STATION_ID, CONF_PLAYER, CONF_STATION_APIS, DOMAIN, NAME
+from .favorites import station_labels
 
 CONF_URL = "url"
 CONF_BODY = "body"
@@ -131,10 +132,19 @@ class TuneInOptionsFlow(OptionsFlowWithReload):
                 return self._save(**{CONF_STATION_APIS: apis})
 
         data = getattr(self.config_entry, "runtime_data", None)
+        favorites = station_labels(data.favorites.stations if data else [])
         stations = [
-            selector.SelectOptionDict(value=s.id, label=f"{s.name} ({s.id})")
-            for s in (data.favorites.stations if data else [])
+            selector.SelectOptionDict(value=station_id, label=name)
+            for name, station_id in favorites.items()
         ]
+        names = {station_id: name for name, station_id in favorites.items()}
+        for station_id in apis.keys() - names.keys():  # not a favorite: ask TuneIn
+            names[station_id] = station_id
+            if data:
+                try:
+                    names[station_id] = (await data.client.describe(station_id)).name
+                except TuneInError:
+                    pass  # show the ID
         schema = vol.Schema(
             {
                 vol.Required(ATTR_STATION_ID): selector.SelectSelector(
@@ -154,7 +164,9 @@ class TuneInOptionsFlow(OptionsFlowWithReload):
             errors=errors,
             description_placeholders={
                 "current": "\n".join(
-                    f"- {k}: {v}" if isinstance(v, str) else f"- {k}: {v['url']} (with body)"
+                    f"- {names[k]}: {v}"
+                    if isinstance(v, str)
+                    else f"- {names[k]}: {v['url']} (with body)"
                     for k, v in apis.items()
                 )
                 or "- none"

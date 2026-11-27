@@ -11,6 +11,7 @@ import logging
 import re
 from typing import Any, NamedTuple
 from urllib.parse import parse_qsl, urlparse
+from xml.etree import ElementTree
 
 import aiohttp
 
@@ -20,10 +21,16 @@ BASE_URL = "https://opml.radiotime.com"
 TIMEOUT = aiohttp.ClientTimeout(total=15)
 STATION_ID_RE = re.compile(r"^s\d+$")
 
-# Key names looked for in a station API's JSON.
+# Key names looked for in a station API's JSON or XML.
 SHOW_KEYS = ("program_title", "programName", "program_name", "show_name", "showName", "show")
 ARTIST_KEYS = ("artist", "artist_name", "artistName")
 SONG_KEYS = ("title", "song", "track", "song_title", "songTitle", "trackName")
+ALBUM_KEYS = ("album", "albumName", "album_name", "collectionName")
+# Artwork for the song, largest first where a source has several.
+ART_KEYS = (
+    "albumImageLarge", "albumImage", "artworkUrl", "artwork_url", "albumArt",
+    "album_art", "artwork", "cover", "coverUrl", "art",
+)
 # Parts of a response that describe what is coming, not what is on.
 UPCOMING_KEYS = {"next", "upnext", "upcoming", "playing_next"}
 # A latest track that started longer ago than this is no longer on air.
@@ -115,6 +122,35 @@ class NowPlaying(NamedTuple):
     show: str | None = None
     artist: str | None = None
     song: str | None = None
+    album: str | None = None
+    art: str | None = None  # image address
+
+
+def xml_to_data(body: bytes) -> dict[str, Any]:
+    """Turn XML into the same shape as JSON: tags become keys.
+
+    Repeated tags become a list, in document order.
+    """
+    # Document type declarations allow entity tricks, and feeds don't need them.
+    if b"<!DOCTYPE" in body or b"<!ENTITY" in body:
+        raise ValueError("XML with a document type declaration is not read")
+
+    def convert(element: ElementTree.Element) -> Any:
+        if not len(element) and not element.attrib:
+            return (element.text or "").strip()
+        found: dict[str, list[Any]] = {}
+        for child in element:
+            found.setdefault(child.tag.rpartition("}")[2], []).append(convert(child))
+        return {
+            **element.attrib,
+            **{tag: v[0] if len(v) == 1 else v for tag, v in found.items()},
+        }
+
+    try:
+        root = ElementTree.fromstring(body)
+    except ElementTree.ParseError as err:
+        raise ValueError(f"Invalid XML: {err}") from err
+    return {root.tag.rpartition("}")[2]: convert(root)}
 
 
 def _objects(data: Any) -> Iterator[dict[str, Any]]:
@@ -141,11 +177,23 @@ def _artist(data: dict[str, Any]) -> str | None:
     return _text(data, ARTIST_KEYS)
 
 
+def _art(data: dict[str, Any]) -> str | None:
+    """The first artwork value that is a web address."""
+    for key in ART_KEYS:
+        value = data.get(key)
+        if isinstance(value, str) and value.startswith(("http://", "https://")):
+            return https(value)
+    return None
+
+
 def _started(data: dict[str, Any]) -> datetime | None:
-    """Start time from `datetime` (ISO 8601) or `playedAt` (Unix time)."""
+    """Start time from `datetime`, `programStartTS` or `playedAt`."""
     try:
         if "datetime" in data:
             return datetime.fromisoformat(data["datetime"])
+        if "programStartTS" in data:  # SecureNet Systems; no zone given, but UTC
+            started = datetime.strptime(data["programStartTS"], "%d %b %Y %H:%M:%S")
+            return started.replace(tzinfo=UTC)
         played = float(data["playedAt"])
         if played > 1e11:  # milliseconds
             played /= 1000
@@ -163,12 +211,13 @@ def _stale(data: dict[str, Any]) -> bool:
 
 
 def parse_station_api(data: Any) -> NowPlaying:
-    """Find the show, artist and song in a station API's JSON.
+    """Find the show, artist, song, album and artwork in a station API's response.
 
     The show and the song are each taken from the first object that has them,
-    so lists must be newest first. A song needs both an artist and a title.
+    so lists must be newest first. A song needs both an artist and a title; the
+    album and artwork are those given with that song.
     """
-    show = artist = song = None
+    show = artist = song = album = art = None
     song_found = False
     for item in _objects(data):
         old = _stale(item)
@@ -182,7 +231,9 @@ def parse_station_api(data: Any) -> NowPlaying:
                 song_found = True
                 if not old:
                     artist, song = name, title
-    return NowPlaying(show, artist, song)
+                    album = _text(item, ALBUM_KEYS)
+                    art = _art(item)
+    return NowPlaying(show, artist, song, album, art)
 
 
 def mime_for_formats(formats: str | None) -> str:
@@ -387,9 +438,9 @@ class TuneInClient:
         own, tunein = (
             NowPlaying() if isinstance(r, BaseException) else r for r in results
         )
-        # Artist and song stay together, so they can't come from different tracks.
+        # Artist, song, album and artwork stay together, so they can't come from different tracks.
         track = own if own.artist or own.song else tunein
-        return NowPlaying(own.show or tunein.show, track.artist, track.song)
+        return NowPlaying(own.show or tunein.show, track.artist, track.song, track.album, track.art)
 
     async def _from_tunein(self, station_id: str) -> NowPlaying:
         info = await self._station_info(station_id)
@@ -407,10 +458,19 @@ class TuneInClient:
                     (i.get("current_track") for i in body if i.get("guide_id") == station_id),
                     None,
                 )
-        return NowPlaying(show, artist, song)
+        return NowPlaying(
+            show,
+            artist,
+            song,
+            info.get("current_album") or None,
+            https(info.get("current_album_art")) or None,
+        )
 
     async def _from_api(self, station_api: str | dict[str, str] | None) -> NowPlaying:
-        """Read a station API: an address, or {"url", "body"} to POST JSON."""
+        """Read a station API: an address, or {"url", "body"} to POST JSON.
+
+        The response may be JSON or XML.
+        """
         if not station_api:
             return NowPlaying()
         if isinstance(station_api, str):
@@ -425,7 +485,11 @@ class TuneInClient:
         try:
             async with request as resp:
                 resp.raise_for_status()
-                data = await resp.json(content_type=None)
+                body = (await resp.read()).removeprefix(b"\xef\xbb\xbf").lstrip()
+                if body.startswith(b"<"):
+                    data = xml_to_data(body)
+                else:
+                    data = await resp.json(content_type=None)
         except (aiohttp.ClientError, TimeoutError, ValueError) as err:
             raise TuneInError(f"Station API failed: {err}") from err
         return parse_station_api(data)
