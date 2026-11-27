@@ -41,6 +41,7 @@ from .const import (
     ATTR_QUERY,
     ATTR_STATION_ID,
     CONF_PLAYER,
+    CONF_STATION_APIS,
     DOMAIN,
     PANEL_ICON,
     PANEL_STATIC_URL,
@@ -151,7 +152,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: TuneInConfigEntry) -> bo
 
     favorites = Favorites(hass)
     await favorites.async_load()
-    tracker = Tracker(hass, client, favorites, entry.options.get(CONF_PLAYER))
+    tracker = Tracker(
+        hass,
+        client,
+        favorites,
+        entry.options.get(CONF_PLAYER),
+        entry.options.get(CONF_STATION_APIS, {}),
+    )
     await tracker.async_start()
     entry.async_on_unload(tracker.async_stop)
     entry.runtime_data = TuneInData(client, favorites, tracker)

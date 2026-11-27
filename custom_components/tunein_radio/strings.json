@@ -18,13 +18,35 @@
   "options": {
     "step": {
       "init": {
+        "menu_options": {
+          "player": "Default media player",
+          "station_api": "Station song API"
+        }
+      },
+      "player": {
         "data": {
           "player": "Default media player"
         },
         "data_description": {
           "player": "The media player TuneIn plays on."
         }
+      },
+      "station_api": {
+        "title": "Station song API",
+        "description": "Addresses entered so far:\n{current}",
+        "data": {
+          "station_id": "Station",
+          "url": "Song API address"
+        },
+        "data_description": {
+          "station_id": "A favorite, or any TuneIn station ID such as s27454.",
+          "url": "Returns JSON with the current artist and title. Leave blank to remove the address."
+        }
       }
+    },
+    "error": {
+      "invalid_station": "Enter a station ID such as s27454.",
+      "invalid_url": "Enter an address starting with http:// or https://."
     }
   },
   "services": {

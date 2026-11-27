@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import asdict, dataclass
+from datetime import UTC, datetime, timedelta
 import json
 import logging
 import re
-from typing import Any
+from typing import Any, NamedTuple
 from urllib.parse import parse_qsl, urlparse
 
 import aiohttp
@@ -17,6 +18,12 @@ _LOGGER = logging.getLogger(__name__)
 BASE_URL = "https://opml.radiotime.com"
 TIMEOUT = aiohttp.ClientTimeout(total=15)
 STATION_ID_RE = re.compile(r"^s\d+$")
+
+# Key names looked for in a song API's JSON.
+ARTIST_KEYS = ("artist", "artist_name", "artistName")
+SONG_KEYS = ("title", "song", "track", "song_title", "songTitle", "trackName")
+# A latest track that started longer ago than this is no longer on air.
+TRACK_MAX_AGE = timedelta(minutes=15)
 
 # Fallback search: tunein.com's own search page lists some stations the OPML
 # API leaves out (e.g. ones flagged is_available:false). Its results are JSON
@@ -96,6 +103,45 @@ class TuneInError(Exception):
 def https(url: str | None) -> str:
     """TuneIn returns http:// logo URLs; their CDN also serves https."""
     return (url or "").replace("http://", "https://", 1)
+
+
+class NowPlaying(NamedTuple):
+    """What is on air; any part may be unknown."""
+
+    show: str | None = None
+    artist: str | None = None
+    song: str | None = None
+
+
+def parse_song(data: Any) -> tuple[str | None, str | None] | None:
+    """Find (artist, song) in a song API's JSON.
+
+    Uses the first object that has both, so lists must be newest first.
+    Returns None if there is no such object.
+    """
+    if isinstance(data, dict):
+
+        def first(keys: tuple[str, ...]) -> str | None:
+            values = (data.get(k) for k in keys)
+            return next((v.strip() for v in values if isinstance(v, str) and v.strip()), None)
+
+        artist, song = first(ARTIST_KEYS), first(SONG_KEYS)
+        if artist == "[BREAK]":  # a marker for talk, not music
+            return None, None
+        if artist and song:
+            try:
+                started = datetime.fromisoformat(data["datetime"])
+                if datetime.now(UTC) - started > TRACK_MAX_AGE:
+                    return None, None
+            except (KeyError, TypeError, ValueError):
+                pass  # no usable start time
+            return artist, song
+        data = list(data.values())
+    if isinstance(data, list):
+        for item in data:
+            if (found := parse_song(item)) is not None:
+                return found
+    return None
 
 
 def mime_for_formats(formats: str | None) -> str:
@@ -190,6 +236,7 @@ class TuneInClient:
     def __init__(self, session: aiohttp.ClientSession) -> None:
         """Initialize with a shared aiohttp session."""
         self._session = session
+        self._names: dict[str, str] = {}  # station ID -> TuneIn name
 
     async def _get(self, endpoint: str, params: dict[str, str]) -> list[dict[str, Any]]:
         return (await self._request(endpoint, params)).get("body", [])
@@ -283,12 +330,57 @@ class TuneInClient:
         walk(body)
         return title, links, stations
 
-    async def describe(self, station_id: str) -> Station:
-        """Look up a station's name and logo by ID."""
+    async def now_playing(self, station_id: str, api_url: str | None = None) -> NowPlaying:
+        """The show from TuneIn, and the artist and song from a song API.
+
+        A part that can't be fetched is left empty.
+        """
+        show, track = await asyncio.gather(
+            self._show(station_id), self._song(api_url), return_exceptions=True
+        )
+        if isinstance(show, BaseException):
+            _LOGGER.debug("No show for %s: %s", station_id, show)
+            show = None
+        if isinstance(track, BaseException):
+            _LOGGER.debug("No song for %s: %s", station_id, track)
+            track = None
+        return NowPlaying(show, *(track or (None, None)))
+
+    async def _show(self, station_id: str) -> str | None:
+        """TuneIn's current show. Only search results have it."""
+        if not (name := self._names.get(station_id)):
+            name = (await self._station_info(station_id)).get("name")
+            if not name:
+                return None
+            self._names[station_id] = name
+        body = await self._get("Search.ashx", {"query": name, "types": "station"})
+        return next(
+            (i.get("current_track") for i in body if i.get("guide_id") == station_id),
+            None,
+        )
+
+    async def _song(self, url: str | None) -> tuple[str | None, str | None] | None:
+        """(artist, song) from a song API."""
+        if not url:
+            return None
+        try:
+            async with self._session.get(url, timeout=TIMEOUT) as resp:
+                resp.raise_for_status()
+                data = await resp.json(content_type=None)
+        except (aiohttp.ClientError, TimeoutError, ValueError) as err:
+            raise TuneInError(f"Song API failed: {err}") from err
+        return parse_song(data)
+
+    async def _station_info(self, station_id: str) -> dict[str, Any]:
         body = await self._get("Describe.ashx", {"id": station_id})
         info = next((i for i in body if i.get("element") == "station"), None)
         if not info:
             raise TuneInError(f"Station {station_id} not found")
+        return info
+
+    async def describe(self, station_id: str) -> Station:
+        """Look up a station's name and logo by ID."""
+        info = await self._station_info(station_id)
         name = info.get("name") or station_id
         if info.get("frequency") and info.get("band") in ("AM", "FM"):
             name = f"{name} {info['frequency']} {info['band']}"

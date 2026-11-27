@@ -6,8 +6,6 @@ from typing import Any
 
 from homeassistant.components import media_source
 from homeassistant.components.media_player import (
-    ATTR_MEDIA_ARTIST,
-    ATTR_MEDIA_TITLE,
     ATTR_MEDIA_VOLUME_LEVEL,
     ATTR_MEDIA_VOLUME_MUTED,
     DOMAIN as MEDIA_PLAYER_DOMAIN,
@@ -151,18 +149,26 @@ class TuneInPlayer(MediaPlayerEntity):
 
     @property
     def media_title(self) -> str | None:
-        """Station name."""
+        """Station name, with the song on air when known.
+
+        Gives "Station · Song - Artist".
+        """
+        if not (station := self._station_name):
+            return None
+        track = self._tracker.track
+        song = " - ".join(p for p in (track.song, track.artist) if p)
+        return " · ".join(p for p in (station, song) if p)
+
+    @property
+    def _station_name(self) -> str | None:
         if not (playing := self._tracker.playing):
             return None
         return playing["name"] or playing["station_id"]
 
     @property
     def media_artist(self) -> str | None:
-        """Track information from the default player, if it reports any."""
-        if not self._tracker.playing or self._tracker.starting:
-            return None
-        parts = (self._output(ATTR_MEDIA_ARTIST), self._output(ATTR_MEDIA_TITLE))
-        return " - ".join(p for p in parts if p and p != self.media_title) or None
+        """Artist on air. The default player's own track info is not used."""
+        return self._tracker.track.artist
 
     @property
     def media_image_url(self) -> str | None:
@@ -172,11 +178,14 @@ class TuneInPlayer(MediaPlayerEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, str | None]:
-        """The station playing now and the player used."""
+        """The station, show and song playing now, and the player used."""
         playing = self._tracker.playing
         return {
             ATTR_STATION_ID: playing["station_id"] if playing else None,
+            "station_name": self._station_name,
             "player": self._tracker.player,
+            "media_show": self._tracker.track.show,
+            "media_songname": self._tracker.track.song,
         }
 
     async def _async_forward(self, service: str, **data: Any) -> None:

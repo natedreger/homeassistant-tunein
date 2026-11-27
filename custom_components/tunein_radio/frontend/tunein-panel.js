@@ -68,6 +68,15 @@ class TuneInRadioPanel extends HTMLElement {
     return entry.station;
   }
 
+  // TuneIn's own player entity, if it's following the selected speaker. It has
+  // the show, artist and song on air; the speaker's own track info is not used.
+  _tunein(stationId) {
+    return Object.values(this._hass.states).find(
+      (s) => s.entity_id.startsWith("media_player.") && s.attributes.player === this._player &&
+        s.attributes.station_id && (!stationId || s.attributes.station_id === stationId)
+    )?.attributes;
+  }
+
   set hass(hass) {
     const first = !this._hass;
     this._hass = hass;
@@ -315,8 +324,11 @@ class TuneInRadioPanel extends HTMLElement {
       const state = this._hass.states[this._player];
       const a = state?.attributes || {};
       active = state && !["off", "idle", "unavailable", "unknown"].includes(state.state);
-      name = active ? mine?.name || a.media_title || a.friendly_name : "Nothing playing";
-      sub = active ? [a.media_artist, mine ? a.media_title : null, a.friendly_name].filter(Boolean).join(" · ") : a.friendly_name || "";
+      const tunein = active ? this._tunein(mine?.id) : null;
+      const station = mine?.name || tunein?.station_name;
+      name = active ? station || a.friendly_name : "Nothing playing";
+      const song = [tunein?.media_songname, tunein?.media_artist].filter(Boolean).join(" - ");
+      sub = active ? [tunein?.media_show, song, station ? a.friendly_name : null].filter(Boolean).join(" · ") : a.friendly_name || "";
       img = active ? mine?.image || a.entity_picture : null;
       playing = state?.state === "playing";
       volume = a.volume_level ?? 0;
