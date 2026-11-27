@@ -12,16 +12,16 @@ that filter on MIME type list them.
 
 from __future__ import annotations
 
-from homeassistant.components.media_player import BrowseError, MediaClass, MediaType
-from homeassistant.components.media_source import (
+from homeassistant.components.media_player import BrowseError, MediaClass, MediaType  # pyright: ignore[reportMissingImports]
+from homeassistant.components.media_source import (  # pyright: ignore[reportMissingImports]
     BrowseMediaSource,
     MediaSource,
     MediaSourceItem,
     PlayMedia,
     Unresolvable,
 )
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.core import HomeAssistant  # pyright: ignore[reportMissingImports]
+from homeassistant.helpers.dispatcher import async_dispatcher_send  # pyright: ignore[reportMissingImports]
 
 from . import get_data
 from .api import Station, TuneInError
@@ -136,7 +136,7 @@ class TuneInMediaSource(MediaSource):
 
         async def async_search_media(self, item, query):  # type: ignore[no-untyped-def]
             """Search TuneIn stations from the media browser."""
-            from homeassistant.components.media_player import SearchMedia
+            from homeassistant.components.media_player import SearchMedia  # pyright: ignore[reportMissingImports]
 
             try:
                 stations = await get_data(self.hass).client.search(query.search_query)

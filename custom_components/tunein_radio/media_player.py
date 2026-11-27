@@ -4,18 +4,20 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components import media_source
-from homeassistant.components.media_player import (
+from homeassistant.components import media_source  # pyright: ignore[reportMissingImports]
+from homeassistant.components.media_player import (  # pyright: ignore[reportMissingImports]
     ATTR_MEDIA_VOLUME_LEVEL,
     ATTR_MEDIA_VOLUME_MUTED,
-    DOMAIN as MEDIA_PLAYER_DOMAIN,
     BrowseMedia,
     MediaPlayerEntity,
     MediaPlayerEntityFeature,
     MediaPlayerState,
     MediaType,
 )
-from homeassistant.const import (
+from homeassistant.components.media_player import (  # pyright: ignore[reportMissingImports]
+    DOMAIN as MEDIA_PLAYER_DOMAIN,
+)
+from homeassistant.const import (  # pyright: ignore[reportMissingImports]
     ATTR_ENTITY_ID,
     ATTR_SUPPORTED_FEATURES,
     SERVICE_MEDIA_PAUSE,
@@ -27,9 +29,9 @@ from homeassistant.const import (
     SERVICE_VOLUME_UP,
     STATE_UNAVAILABLE,
 )
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.core import HomeAssistant  # pyright: ignore[reportMissingImports]
+from homeassistant.exceptions import HomeAssistantError  # pyright: ignore[reportMissingImports]
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback  # pyright: ignore[reportMissingImports]
 
 from . import TuneInConfigEntry
 from .const import ATTR_STATION_ID, DOMAIN, PANEL_ICON, media_source_id

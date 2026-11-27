@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Iterator
-from dataclasses import asdict, dataclass
-from datetime import UTC, datetime, timedelta
 import json
 import logging
 import re
+from collections.abc import Iterator
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime, timedelta
 from typing import Any, NamedTuple
 from urllib.parse import parse_qsl, urlparse
 from xml.etree import ElementTree
 
-import aiohttp
+import aiohttp  # pyright: ignore[reportMissingImports]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -171,9 +171,12 @@ def _text(data: dict[str, Any], keys: tuple[str, ...]) -> str | None:
 def _artist(data: dict[str, Any]) -> str | None:
     """The artist, which some APIs give as a list of names."""
     for key in ARTIST_KEYS:
-        if isinstance(names := data.get(key), list):
-            if joined := ", ".join(n.strip() for n in names if isinstance(n, str) and n.strip()):
-                return joined
+        if isinstance(names := data.get(key), list) and (
+            joined := ", ".join(
+                n.strip() for n in names if isinstance(n, str) and n.strip()
+            )
+        ):
+            return joined
     return _text(data, ARTIST_KEYS)
 
 
@@ -413,10 +416,13 @@ class TuneInClient:
                     if item["guide_id"] not in seen:
                         seen.add(item["guide_id"])
                         stations.append(Station.from_outline(item))
-                elif item.get("type") == "link" and (q := browse_query(item.get("URL"))):
-                    # Skip podcasts; this integration is for live radio.
-                    if q != "c=podcast":
-                        links.append(Link(item.get("text", q), q))
+                # Skip podcasts; this integration is for live radio.
+                elif (
+                    item.get("type") == "link"
+                    and (q := browse_query(item.get("URL")))
+                    and q != "c=podcast"
+                ):
+                    links.append(Link(item.get("text", q), q))
 
         walk(body)
         return title, links, stations
