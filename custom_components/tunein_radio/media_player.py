@@ -171,6 +171,11 @@ class TuneInPlayer(MediaPlayerEntity):
         return self._tracker.track.artist
 
     @property
+    def media_album_name(self) -> str | None:
+        """Album of the song on air."""
+        return self._tracker.track.album
+
+    @property
     def media_image_url(self) -> str | None:
         """Station logo."""
         playing = self._tracker.playing
@@ -185,7 +190,7 @@ class TuneInPlayer(MediaPlayerEntity):
             "station_name": self._station_name,
             "player": self._tracker.player,
             "media_show": self._tracker.track.show,
-            "media_songname": self._tracker.track.song,
+            "media_song_name": self._tracker.track.song,
         }
 
     async def _async_forward(self, service: str, **data: Any) -> None:

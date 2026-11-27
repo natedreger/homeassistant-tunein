@@ -327,7 +327,7 @@ class TuneInRadioPanel extends HTMLElement {
       const tunein = active ? this._tunein(mine?.id) : null;
       const station = mine?.name || tunein?.station_name;
       name = active ? station || a.friendly_name : "Nothing playing";
-      const song = [tunein?.media_songname, tunein?.media_artist].filter(Boolean).join(" - ");
+      const song = [tunein?.media_song_name, tunein?.media_artist].filter(Boolean).join(" - ");
       sub = active ? [tunein?.media_show, song, station ? a.friendly_name : null].filter(Boolean).join(" · ") : a.friendly_name || "";
       img = active ? mine?.image || a.entity_picture : null;
       playing = state?.state === "playing";

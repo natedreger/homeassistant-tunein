@@ -25,6 +25,7 @@ STATION_ID_RE = re.compile(r"^s\d+$")
 SHOW_KEYS = ("program_title", "programName", "program_name", "show_name", "showName", "show")
 ARTIST_KEYS = ("artist", "artist_name", "artistName")
 SONG_KEYS = ("title", "song", "track", "song_title", "songTitle", "trackName")
+ALBUM_KEYS = ("album", "albumName", "album_name", "collectionName")
 # Parts of a response that describe what is coming, not what is on.
 UPCOMING_KEYS = {"next", "upnext", "upcoming", "playing_next"}
 # A latest track that started longer ago than this is no longer on air.
@@ -116,6 +117,7 @@ class NowPlaying(NamedTuple):
     show: str | None = None
     artist: str | None = None
     song: str | None = None
+    album: str | None = None
 
 
 def xml_to_data(body: bytes) -> dict[str, Any]:
@@ -194,12 +196,13 @@ def _stale(data: dict[str, Any]) -> bool:
 
 
 def parse_station_api(data: Any) -> NowPlaying:
-    """Find the show, artist and song in a station API's JSON.
+    """Find the show, artist, song and album in a station API's response.
 
     The show and the song are each taken from the first object that has them,
-    so lists must be newest first. A song needs both an artist and a title.
+    so lists must be newest first. A song needs both an artist and a title; the
+    album is the one given with that song.
     """
-    show = artist = song = None
+    show = artist = song = album = None
     song_found = False
     for item in _objects(data):
         old = _stale(item)
@@ -213,7 +216,8 @@ def parse_station_api(data: Any) -> NowPlaying:
                 song_found = True
                 if not old:
                     artist, song = name, title
-    return NowPlaying(show, artist, song)
+                    album = _text(item, ALBUM_KEYS)
+    return NowPlaying(show, artist, song, album)
 
 
 def mime_for_formats(formats: str | None) -> str:
@@ -418,9 +422,9 @@ class TuneInClient:
         own, tunein = (
             NowPlaying() if isinstance(r, BaseException) else r for r in results
         )
-        # Artist and song stay together, so they can't come from different tracks.
+        # Artist, song and album stay together, so they can't come from different tracks.
         track = own if own.artist or own.song else tunein
-        return NowPlaying(own.show or tunein.show, track.artist, track.song)
+        return NowPlaying(own.show or tunein.show, track.artist, track.song, track.album)
 
     async def _from_tunein(self, station_id: str) -> NowPlaying:
         info = await self._station_info(station_id)
@@ -438,7 +442,7 @@ class TuneInClient:
                     (i.get("current_track") for i in body if i.get("guide_id") == station_id),
                     None,
                 )
-        return NowPlaying(show, artist, song)
+        return NowPlaying(show, artist, song, info.get("current_album") or None)
 
     async def _from_api(self, station_api: str | dict[str, str] | None) -> NowPlaying:
         """Read a station API: an address, or {"url", "body"} to POST JSON.

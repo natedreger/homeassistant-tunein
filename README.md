@@ -31,7 +31,8 @@ While a station plays on the default player, `media_player.tunein` has:
 |---|---|
 | `media_show` | Current show |
 | `media_artist` | Artist on air |
-| `media_songname` | Song on air |
+| `media_song_name` | Song on air |
+| `media_album_name` | Album of that song, where the source gives one |
 
 These come from TuneIn, which only has them for some stations. You can override it with a station's own API (see below).
 
@@ -52,6 +53,8 @@ The address must return JSON or XML. In XML, the tag names are the field names. 
 
 - **Show:** `program_title`, `programName`, `program_name`, `show_name`, `showName` or `show`.
 - **Song:** an object with both an artist (`artist`, `artist_name` or `artistName`) and a title (`title`, `song`, `track`, `song_title`, `songTitle` or `trackName`).
+
+- **Album (optional):** `album`, `albumName`, `album_name` or `collectionName`, in the same object as the song.
 
 Anything under `next`, `upNext`, `upcoming` or `playing_next` is skipped. The artist can be a list of names. An object is ignored if it started more than 15 minutes ago, going by `datetime` (with a time zone) `programStartTS` (as SecureNet Systems writes it, read as UTC) or `playedAt` (Unix time). Entries with an empty artist or title are skipped.
 
