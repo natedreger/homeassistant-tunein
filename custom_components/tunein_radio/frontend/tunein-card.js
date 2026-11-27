@@ -12,6 +12,7 @@ const DEFAULT_ATTRIBUTES = ["media_show", "media_song_name"];
 // MediaPlayerEntityFeature bits.
 const VOLUME_SET = 4;
 const VOLUME_MUTE = 8;
+const SELECT_SOURCE = 2048;
 
 const label = (name) =>
   LABELS[name] || name.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
@@ -54,6 +55,7 @@ class TuneInCard extends HTMLElement {
         },
         { name: "show_labels", default: true, selector: { boolean: {} } },
         { name: "show_volume", default: true, selector: { boolean: {} } },
+        { name: "show_favorites", default: true, selector: { boolean: {} } },
       ],
       computeLabel: ({ name }) =>
         ({
@@ -62,13 +64,14 @@ class TuneInCard extends HTMLElement {
           attributes: "Attributes",
           show_labels: "Show labels",
           show_volume: "Show volume slider",
+          show_favorites: "Show favorites button",
         })[name],
     };
   }
 
   setConfig(config) {
     if (!config.entity?.startsWith("media_player.")) throw new Error("Choose a media player entity");
-    this._config = { attributes: DEFAULT_ATTRIBUTES, show_labels: true, show_volume: true, title_source: "station_name", ...config };
+    this._config = { attributes: DEFAULT_ATTRIBUTES, show_labels: true, show_volume: true, show_favorites: true, title_source: "station_name", ...config };
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div id="player"></div>
       <div id="volume">
@@ -78,6 +81,7 @@ class TuneInCard extends HTMLElement {
       <dl></dl></ha-card>`;
     this._list = this.shadowRoot.querySelector("dl"); // it moves, so keep hold of it
     this._listenToVolume();
+    this._createFavorites();
     this._player = null;
     this._extended = false;
     this._heading = null;
@@ -123,6 +127,7 @@ class TuneInCard extends HTMLElement {
     const place = info || home;
     if (list.parentNode !== place) place.append(list);
     this._placeHeading(info);
+    this._placeFavorites(player.shadowRoot);
   }
 
   // The station name, in place of the media control card's own title. Written
@@ -139,6 +144,69 @@ class TuneInCard extends HTMLElement {
     }
     this._heading.textContent = station;
     if (this._heading.parentNode !== info) info.prepend(this._heading);
+  }
+
+  // A star button that drops down the player's sources: for the TuneIn player,
+  // the favorites. An invisible native list covers the star, so the card's edges
+  // can't cut the open list off.
+  _createFavorites() {
+    this._favorites = document.createElement("label");
+    this._favorites.className = "favorites";
+    this._favorites.title = "Favorites";
+    const star = document.createElement("ha-icon");
+    star.setAttribute("icon", "mdi:star");
+    const list = document.createElement("select");
+    list.setAttribute("aria-label", "Favorites");
+    list.addEventListener("change", () => {
+      if (list.value) this._call("select_source", { source: list.value });
+    });
+    this._favorites.append(star, list);
+    this._sourceList = list;
+    this._sources = null;
+    this.shadowRoot.querySelector("ha-card").append(this._favorites);
+  }
+
+  _updateFavorites(state) {
+    const sources = state?.attributes.source_list || [];
+    this._favorites.hidden =
+      this._config.show_favorites === false ||
+      !sources.length ||
+      state.state === "unavailable" ||
+      !(state.attributes.supported_features & SELECT_SOURCE);
+    if (this._favorites.hidden) return;
+
+    // Only rebuilt when the favorites change; rebuilding closes an open list.
+    const key = JSON.stringify(sources);
+    if (key !== this._sources) {
+      this._sources = key;
+      this._sourceList.replaceChildren(
+        ...["", ...sources].map((source) => {
+          const option = document.createElement("option");
+          option.value = source;
+          option.textContent = source || "Favorites";
+          option.disabled = !source;
+          return option;
+        })
+      );
+    }
+    this._sourceList.value = sources.includes(state.attributes.source) ? state.attributes.source : "";
+  }
+
+  // Next to the media control card's browse button; failing that, with its
+  // other controls, or at the bottom of this card.
+  _placeFavorites(root) {
+    const button = this._favorites;
+    const browse = root.querySelector(".browse-media");
+    if (browse) {
+      // That button is pinned to the card's edge; sit just inside it.
+      const pinned = window.getComputedStyle?.(browse).position === "absolute";
+      button.className = pinned ? "favorites pinned" : "favorites";
+      if (browse.nextSibling !== button) browse.after(button);
+      return;
+    }
+    button.className = "favorites";
+    const place = root.querySelector(".controls") || this.shadowRoot.querySelector("ha-card");
+    if (button.parentNode !== place) place.append(button);
   }
 
   _listenToVolume() {
@@ -200,6 +268,7 @@ class TuneInCard extends HTMLElement {
     const attributes = state?.attributes || {};
 
     const slider = this._updateVolume(state);
+    this._updateFavorites(state);
     const over = slider && this._extended;
     this.shadowRoot.querySelector("ha-card").className = !over
       ? ""
@@ -255,12 +324,23 @@ const LIST_STYLE = `
   .media_artist, .media_album_name { font-size: 0.85em; }
 `;
 
+const FAVORITES_STYLE = `
+  .favorites { position: relative; display: inline-flex; width: 40px; height: 40px; align-items: center; justify-content: center; vertical-align: middle; cursor: pointer; }
+  .favorites[hidden] { display: none; }
+  .favorites.pinned { position: absolute; right: 52px; }
+  .favorites select { position: absolute; inset: 0; width: 100%; opacity: 0; font: inherit; cursor: pointer; }
+  .favorites:focus-within { outline: 2px solid currentColor; border-radius: 50%; }
+  /* The open list is drawn on its own background, so it needs its own colours. */
+  .favorites option { color: #212121; background: #fff; }
+`;
+
 // Added inside the media control card, where it takes that card's text colour.
 const INSIDE_STYLE = `
   ha-card { padding-bottom: var(--tunein-below, 0px) !important; }
   .heading { font-size: 1.2em; margin: 0 0 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
   /* Hides the card's own title while ours is there. */
   .heading ~ :not(dl) { display: none !important; }
+  ${FAVORITES_STYLE}
   ${LIST_STYLE}
   dl { margin: 4px 0 0; gap: 2px 8px; font-weight: normal; }
   dt { opacity: 0.75; }
@@ -271,6 +351,7 @@ const STYLE = `
   ha-card { overflow: hidden; }
   /* The media control card sits inside this one, so it has no frame of its own. */
   #player { --ha-card-border-width: 0; --ha-card-box-shadow: none; --ha-card-border-radius: 0; }
+  ${FAVORITES_STYLE}
   ${LIST_STYLE}
   dl { margin: 0; padding: 12px 16px 16px; }
   #volume { display: flex; align-items: center; gap: 8px; padding: 8px 16px 0; }

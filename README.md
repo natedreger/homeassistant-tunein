@@ -79,6 +79,8 @@ attributes:
 
 A volume slider and mute button control the speaker, if it supports them. Set `show_volume: false` to leave them off (also a switch in the card editor).
 
+A star button beside the browse button drops down your favorites; choosing one plays it. Set `show_favorites: false` to leave it off (also a switch in the card editor).
+
 The integration loads the card itself, so there is no dashboard resource to add. Reload the browser after installing or updating.
 
 ## Favorites entity
