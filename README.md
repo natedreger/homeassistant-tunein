@@ -41,7 +41,7 @@ The title (`media_title`) is the station, song and artist ("KCRW · Largate - Ka
 
 Track information reported by the default player is not used.
 
-To set a station's own API, use **Configure → Station API** on the integration. Pick a favorite or type a station ID, and enter the address. Leave the address blank to remove it. No addresses are built in.
+To set a station's own API, use **Configure → Station API** on the integration. Pick a favorite or type a station ID, and enter the address. Leave the address blank to remove it. No addresses are built in.  This can be obtained by asking an AI service to find them for you.
 
 What the address provides takes precedence over TuneIn; TuneIn fills in the rest.
 
@@ -58,10 +58,6 @@ The address must return JSON or XML. In XML, the tag names are the field names. 
 - **Album (optional):** `album`, `albumName`, `album_name` or `collectionName`, in the same object as the song.
 
 - **Artwork (optional):** a web address in `albumImageLarge`, `albumImage`, `artworkUrl`, `artwork_url`, `albumArt`, `album_art`, `artwork`, `cover`, `coverUrl` or `art`, in the same object as the song.
-
-Anything under `next`, `upNext`, `upcoming` or `playing_next` is skipped. The artist can be a list of names. An object is ignored if it started more than 15 minutes ago, going by `datetime` (with a time zone) `programStartTS` (as SecureNet Systems writes it, read as UTC) or `playedAt` (Unix time). Entries with an empty artist or title are skipped.
-
-For example, Birmingham Mountain Radio (`s131284`): `https://streamdb3web.securenetsystems.net/player_status_update/WBMR_history.xml`
 
 ## Dashboard card
 
