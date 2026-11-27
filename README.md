@@ -65,7 +65,7 @@ For example, Birmingham Mountain Radio (`s131284`): `https://streamdb3web.secure
 
 ## Dashboard card
 
-**TuneIn card** is Home Assistant's media control card with more attributes listed below it. Add it from the dashboard's card picker, or in YAML:
+**TuneIn card** is Home Assistant's media control card with more attributes listed under its title. Add it from the dashboard's card picker, or in YAML:
 
 ```yaml
 type: custom:tunein-card
@@ -75,7 +75,9 @@ attributes:
   - media_song_name
 ```
 
-`attributes` takes any attributes of the media player, in the order to show them. Without it, the card shows the show and song. Empty ones are hidden. Set `show_labels: false` to list the values without their labels (also a switch in the card editor). The card's title is the station name; add `media_artist` to the list to show the artist.
+`attributes` takes any attributes of the media player, in the order to show them. Without it, the card shows the show and song. Empty ones are hidden. Set `show_labels: false` to list the values without their labels (also a switch in the card editor). The card's title is the station name; add `media_artist` to the list to show the artist. Set `title_source: media_title` (**Card title** in the card editor) to use the player's title instead, which is the station, song and artist.
+
+A volume slider and mute button control the speaker, if it supports them. Set `show_volume: false` to leave them off (also a switch in the card editor).
 
 The integration loads the card itself, so there is no dashboard resource to add. Reload the browser after installing or updating.
 
