@@ -71,7 +71,7 @@ class TuneInConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class TuneInOptionsFlow(OptionsFlowWithReload):
-    """Change the default media player, or set a station's song API."""
+    """Change the default media player, or set a station's own API."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -100,7 +100,7 @@ class TuneInOptionsFlow(OptionsFlowWithReload):
     async def async_step_station_api(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Set or remove the song API of one station."""
+        """Set or remove the API of one station."""
         apis = dict(self.config_entry.options.get(CONF_STATION_APIS, {}))
         errors: dict[str, str] = {}
         if user_input is not None:

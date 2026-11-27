@@ -20,7 +20,7 @@
       "init": {
         "menu_options": {
           "player": "Default media player",
-          "station_api": "Station song API"
+          "station_api": "Station API"
         }
       },
       "player": {
@@ -32,15 +32,15 @@
         }
       },
       "station_api": {
-        "title": "Station song API",
+        "title": "Station API",
         "description": "Addresses entered so far:\n{current}",
         "data": {
           "station_id": "Station",
-          "url": "Song API address"
+          "url": "API address"
         },
         "data_description": {
           "station_id": "A favorite, or any TuneIn station ID such as s27454.",
-          "url": "Returns JSON with the current artist and title. Leave blank to remove the address."
+          "url": "Returns JSON with the current show, artist and title. It overrides TuneIn. Leave blank to remove the address."
         }
       }
     },

@@ -27,19 +27,28 @@ This has only been proven to work with OwnTone (forked-daapd)
 
 While a station plays on the default player, `media_player.tunein` has:
 
-| Attribute | Source |
+| Attribute | What it is |
 |---|---|
-| `media_show` | TuneIn, for stations it lists a show for |
-| `media_artist` | The station's song API |
-| `media_songname` | The station's song API |
+| `media_show` | Current show |
+| `media_artist` | Artist on air |
+| `media_songname` | Song on air |
+
+These come from TuneIn, which only has them for some stations. You can override it with a station's own API (see below).
 
 The title (`media_title`) is the station, song and artist ("KCRW · Largate - Kali Uchis"). The station name alone is in the `station_name` attribute.
 
 Track information reported by the default player is not used.
 
-To set a station's song API, use **Configure → Station song API** on the integration. Pick a favorite or type a station ID, and enter the address. Leave the address blank to remove it. No addresses are built in, so a station has no artist or song until you set one.
+To set a station's own API, use **Configure → Station API** on the integration. Pick a favorite or type a station ID, and enter the address. Leave the address blank to remove it. No addresses are built in.
 
-The address must return JSON containing an object with both an artist (`artist`, `artist_name` or `artistName`) and a title (`title`, `song`, `track`, `song_title`, `songTitle` or `trackName`). It can be nested. In a list, the newest entry must come first. If the object has a `datetime` with a time zone that is more than 15 minutes old, it is ignored.
+What the address provides takes precedence over TuneIn; TuneIn fills in the rest.
+
+The address must return JSON. Fields can be nested, and in a list the newest entry must come first.
+
+- **Show:** `program_title`, `programName`, `program_name`, `show_name`, `showName` or `show`.
+- **Song:** an object with both an artist (`artist`, `artist_name` or `artistName`) and a title (`title`, `song`, `track`, `song_title`, `songTitle` or `trackName`).
+
+Anything under `next`, `upNext`, `upcoming` or `playing_next` is skipped. An object with a `datetime` with a time zone more than 15 minutes old is ignored.
 
 ## Favorites entity
 
