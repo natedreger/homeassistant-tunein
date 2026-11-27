@@ -1,2 +1,2 @@
 - [ ][#1][enhancement] Sync with station provided playlist info.  Scrape for now playing
-- [ ][#2][] Test issues.md sync
+- [x][#2][] Test issues.md sync
