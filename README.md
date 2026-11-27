@@ -43,12 +43,17 @@ To set a station's own API, use **Configure → Station API** on the integration
 
 What the address provides takes precedence over TuneIn; TuneIn fills in the rest.
 
+Some APIs need data sent with a `POST` request. Enter that JSON as the **Request body**; leave it blank otherwise. For example, 88Nine Radio Milwaukee (`s24211`):
+
+- Address: `https://precise-fish-444.convex.cloud/api/query`
+- Request body: `{"path":"plays:currentByStation","args":{"stationSlug":"88nine"},"format":"json"}`
+
 The address must return JSON. Fields can be nested, and in a list the newest entry must come first.
 
 - **Show:** `program_title`, `programName`, `program_name`, `show_name`, `showName` or `show`.
 - **Song:** an object with both an artist (`artist`, `artist_name` or `artistName`) and a title (`title`, `song`, `track`, `song_title`, `songTitle` or `trackName`).
 
-Anything under `next`, `upNext`, `upcoming` or `playing_next` is skipped. An object with a `datetime` with a time zone more than 15 minutes old is ignored.
+Anything under `next`, `upNext`, `upcoming` or `playing_next` is skipped. The artist can be a list of names. An object is ignored if it started more than 15 minutes ago, going by `datetime` (with a time zone) or `playedAt` (Unix time).
 
 ## Favorites entity
 

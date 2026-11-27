@@ -132,12 +132,34 @@ def _text(data: dict[str, Any], keys: tuple[str, ...]) -> str | None:
     return next((v.strip() for v in values if isinstance(v, str) and v.strip()), None)
 
 
+def _artist(data: dict[str, Any]) -> str | None:
+    """The artist, which some APIs give as a list of names."""
+    for key in ARTIST_KEYS:
+        if isinstance(names := data.get(key), list):
+            if joined := ", ".join(n.strip() for n in names if isinstance(n, str) and n.strip()):
+                return joined
+    return _text(data, ARTIST_KEYS)
+
+
+def _started(data: dict[str, Any]) -> datetime | None:
+    """Start time from `datetime` (ISO 8601) or `playedAt` (Unix time)."""
+    try:
+        if "datetime" in data:
+            return datetime.fromisoformat(data["datetime"])
+        played = float(data["playedAt"])
+        if played > 1e11:  # milliseconds
+            played /= 1000
+        return datetime.fromtimestamp(played, UTC)
+    except (KeyError, TypeError, ValueError, OverflowError, OSError):
+        return None
+
+
 def _stale(data: dict[str, Any]) -> bool:
     try:
-        started = datetime.fromisoformat(data["datetime"])
-        return datetime.now(UTC) - started > TRACK_MAX_AGE
-    except (KeyError, TypeError, ValueError):
-        return False  # no usable start time
+        started = _started(data)
+        return started is not None and datetime.now(UTC) - started > TRACK_MAX_AGE
+    except TypeError:  # a time without a time zone
+        return False
 
 
 def parse_station_api(data: Any) -> NowPlaying:
@@ -153,7 +175,7 @@ def parse_station_api(data: Any) -> NowPlaying:
         if not show and not old:
             show = _text(item, SHOW_KEYS)
         if not song_found:
-            name, title = _text(item, ARTIST_KEYS), _text(item, SONG_KEYS)
+            name, title = _artist(item), _text(item, SONG_KEYS)
             if name == "[BREAK]":  # a marker for talk, not music
                 song_found = True
             elif name and title:
@@ -348,14 +370,16 @@ class TuneInClient:
         walk(body)
         return title, links, stations
 
-    async def now_playing(self, station_id: str, api_url: str | None = None) -> NowPlaying:
+    async def now_playing(
+        self, station_id: str, station_api: str | dict[str, str] | None = None
+    ) -> NowPlaying:
         """What is on air, from the user's station API and TuneIn.
 
         The station API, if one is set, takes precedence; TuneIn fills in
         what it doesn't give. A source that can't be fetched is left out.
         """
         results = await asyncio.gather(
-            self._from_api(api_url), self._from_tunein(station_id), return_exceptions=True
+            self._from_api(station_api), self._from_tunein(station_id), return_exceptions=True
         )
         for result in results:
             if isinstance(result, BaseException):
@@ -385,11 +409,21 @@ class TuneInClient:
                 )
         return NowPlaying(show, artist, song)
 
-    async def _from_api(self, url: str | None) -> NowPlaying:
-        if not url:
+    async def _from_api(self, station_api: str | dict[str, str] | None) -> NowPlaying:
+        """Read a station API: an address, or {"url", "body"} to POST JSON."""
+        if not station_api:
             return NowPlaying()
+        if isinstance(station_api, str):
+            request = self._session.get(station_api, timeout=TIMEOUT)
+        else:
+            request = self._session.post(
+                station_api["url"],
+                data=station_api["body"],
+                headers={"Content-Type": "application/json"},
+                timeout=TIMEOUT,
+            )
         try:
-            async with self._session.get(url, timeout=TIMEOUT) as resp:
+            async with request as resp:
                 resp.raise_for_status()
                 data = await resp.json(content_type=None)
         except (aiohttp.ClientError, TimeoutError, ValueError) as err:

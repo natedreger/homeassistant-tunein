@@ -36,17 +36,20 @@
         "description": "Addresses entered so far:\n{current}",
         "data": {
           "station_id": "Station",
-          "url": "API address"
+          "url": "API address",
+          "body": "Request body (optional)"
         },
         "data_description": {
           "station_id": "A favorite, or any TuneIn station ID such as s27454.",
-          "url": "Returns JSON with the current show, artist and title. It overrides TuneIn. Leave blank to remove the address."
+          "url": "Returns JSON with the current show, artist or title. It overrides TuneIn. Leave blank to remove the station's API.",
+          "body": "JSON to send, for an API that needs a POST request. Leave blank for an ordinary address. Enter it again whenever you change the address."
         }
       }
     },
     "error": {
       "invalid_station": "Enter a station ID such as s27454.",
-      "invalid_url": "Enter an address starting with http:// or https://."
+      "invalid_url": "Enter an address starting with http:// or https://.",
+      "invalid_body": "Enter valid JSON, or leave this blank."
     }
   },
   "services": {

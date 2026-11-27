@@ -1,0 +1,6 @@
+- 88Nine Radio Milwaukee - 
+    Station : 
+    API Address : https://precise-fish-444.convex.cloud/api/query
+    Req Body : {"path":"plays:currentByStation","args":{"stationSlug":"88nine"},"format":"json"}
+- KCRW - https://tracklist-api.kcrw.com/Simulcast
+- KCRW Eclectic24 - https://tracklist-api.kcrw.com/Music

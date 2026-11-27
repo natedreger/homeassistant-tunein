@@ -52,7 +52,7 @@ class Tracker:
         client: TuneInClient,
         favorites: Favorites,
         player: str | None,
-        station_apis: dict[str, str] | None = None,
+        station_apis: dict[str, str | dict[str, str]] | None = None,
     ) -> None:
         """Initialize."""
         self.hass = hass

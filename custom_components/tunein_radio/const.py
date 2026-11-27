@@ -38,7 +38,8 @@ ATTR_QUERY: Final = "query"
 
 # Option: the default media player, chosen at setup.
 CONF_PLAYER: Final = "player"
-# Option: {station ID: station API address}, entered by the user.
+# Option: {station ID: station API}, entered by the user. A station API is an
+# address, or {"url", "body"} for one that needs a JSON body sent with POST.
 CONF_STATION_APIS: Final = "station_apis"
 # Sent with (media player entity ID, station ID) whenever a station is played.
 SIGNAL_PLAY: Final = f"{DOMAIN}_play"

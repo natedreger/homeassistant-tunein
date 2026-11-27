@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -21,6 +22,7 @@ from .api import STATION_ID_RE
 from .const import ATTR_STATION_ID, CONF_PLAYER, CONF_STATION_APIS, DOMAIN, NAME
 
 CONF_URL = "url"
+CONF_BODY = "body"
 URL_RE = re.compile(r"^https?://\S+$", re.IGNORECASE)
 
 
@@ -46,6 +48,14 @@ def _player_schema(hass: HomeAssistant) -> vol.Schema:
             )
         }
     )
+
+
+def _is_json(text: str) -> bool:
+    try:
+        json.loads(text)
+    except ValueError:
+        return False
+    return True
 
 
 class TuneInConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -106,13 +116,16 @@ class TuneInOptionsFlow(OptionsFlowWithReload):
         if user_input is not None:
             station_id = user_input[ATTR_STATION_ID].strip()
             url = user_input.get(CONF_URL, "").strip()
+            body = user_input.get(CONF_BODY, "").strip()
             if not STATION_ID_RE.match(station_id):
                 errors[ATTR_STATION_ID] = "invalid_station"
             elif url and not URL_RE.match(url):
                 errors[CONF_URL] = "invalid_url"
+            elif url and body and not _is_json(body):
+                errors[CONF_BODY] = "invalid_body"
             else:
                 if url:
-                    apis[station_id] = url
+                    apis[station_id] = {"url": url, "body": body} if body else url
                 else:
                     apis.pop(station_id, None)
                 return self._save(**{CONF_STATION_APIS: apis})
@@ -130,6 +143,9 @@ class TuneInOptionsFlow(OptionsFlowWithReload):
                 vol.Optional(CONF_URL): selector.TextSelector(
                     selector.TextSelectorConfig(type=selector.TextSelectorType.URL)
                 ),
+                vol.Optional(CONF_BODY): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
             }
         )
         return self.async_show_form(
@@ -137,6 +153,10 @@ class TuneInOptionsFlow(OptionsFlowWithReload):
             data_schema=self.add_suggested_values_to_schema(schema, user_input or {}),
             errors=errors,
             description_placeholders={
-                "current": "\n".join(f"- {k}: {v}" for k, v in apis.items()) or "- none"
+                "current": "\n".join(
+                    f"- {k}: {v}" if isinstance(v, str) else f"- {k}: {v['url']} (with body)"
+                    for k, v in apis.items()
+                )
+                or "- none"
             },
         )
