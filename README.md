@@ -48,12 +48,14 @@ Some APIs need data sent with a `POST` request. Enter that JSON as the **Request
 - Address: `https://precise-fish-444.convex.cloud/api/query`
 - Request body: `{"path":"plays:currentByStation","args":{"stationSlug":"88nine"},"format":"json"}`
 
-The address must return JSON. Fields can be nested, and in a list the newest entry must come first.
+The address must return JSON or XML. In XML, the tag names are the field names. Fields can be nested, and in a list the newest entry must come first.
 
 - **Show:** `program_title`, `programName`, `program_name`, `show_name`, `showName` or `show`.
 - **Song:** an object with both an artist (`artist`, `artist_name` or `artistName`) and a title (`title`, `song`, `track`, `song_title`, `songTitle` or `trackName`).
 
-Anything under `next`, `upNext`, `upcoming` or `playing_next` is skipped. The artist can be a list of names. An object is ignored if it started more than 15 minutes ago, going by `datetime` (with a time zone) or `playedAt` (Unix time).
+Anything under `next`, `upNext`, `upcoming` or `playing_next` is skipped. The artist can be a list of names. An object is ignored if it started more than 15 minutes ago, going by `datetime` (with a time zone) `programStartTS` (as SecureNet Systems writes it, read as UTC) or `playedAt` (Unix time). Entries with an empty artist or title are skipped.
+
+For example, Birmingham Mountain Radio (`s131284`): `https://streamdb3web.securenetsystems.net/player_status_update/WBMR_history.xml`
 
 ## Favorites entity
 
