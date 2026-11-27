@@ -1,0 +1,40 @@
+name: Sync ISSUES.md
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ISSUES.md
+      - .github/scripts/sync_issues.py
+      - .github/workflows/sync-issues.yml
+  issues:
+    types: [opened, edited, closed, reopened, labeled, unlabeled, deleted, transferred]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: sync-issues
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - run: python3 .github/scripts/sync_issues.py
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Commit ISSUES.md
+        if: ${{ !cancelled() }}
+        run: |
+          git add ISSUES.md
+          git diff --cached --quiet && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update ISSUES.md from GitHub issues"
+          git pull --rebase
+          git push
