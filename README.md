@@ -35,20 +35,15 @@ While a station plays on the default player, `media_player.tunein` has:
 | `media_album_name` | Album of that song, where the source gives one |
 | `media_album_art` | Address of that song's artwork, where the source gives one |
 
-These come from TuneIn, which only has them for some stations. You can override it with a station's own API (see below).
+These come from TuneIn, which only has them for some stations. You can override it with a station's API (see below).
 
 The title (`media_title`) is the station, song and artist ("KCRW · Largate - Kali Uchis"). The station name alone is in the `station_name` attribute.
 
-Track information reported by the default player is not used.
+To set a station's API, use **Configure → Station API** on the integration. Pick a favorite or type a station ID, and enter the address. Leave the address blank to remove it. No addresses are built in.  This can be obtained by asking an AI service to find them for you.
 
-To set a station's own API, use **Configure → Station API** on the integration. Pick a favorite or type a station ID, and enter the address. Leave the address blank to remove it. No addresses are built in.  This can be obtained by asking an AI service to find them for you.
+What the station API provides takes precedence over TuneIn; TuneIn fills in the rest.
 
-What the address provides takes precedence over TuneIn; TuneIn fills in the rest.
-
-Some APIs need data sent with a `POST` request. Enter that JSON as the **Request body**; leave it blank otherwise. For example, 88Nine Radio Milwaukee (`s24211`):
-
-- Address: `https://precise-fish-444.convex.cloud/api/query`
-- Request body: `{"path":"plays:currentByStation","args":{"stationSlug":"88nine"},"format":"json"}`
+Some APIs need data sent with a `POST` request. Enter that JSON as the **Request body**; leave it blank otherwise. 
 
 The address must return JSON or XML. In XML, the tag names are the field names. Fields can be nested, and in a list the newest entry must come first.
 
