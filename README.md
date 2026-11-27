@@ -55,6 +55,22 @@ The address must return JSON. Fields can be nested, and in a list the newest ent
 
 Anything under `next`, `upNext`, `upcoming` or `playing_next` is skipped. The artist can be a list of names. An object is ignored if it started more than 15 minutes ago, going by `datetime` (with a time zone) or `playedAt` (Unix time).
 
+## Dashboard card
+
+**TuneIn card** is Home Assistant's media control card with more attributes listed below it. Add it from the dashboard's card picker, or in YAML:
+
+```yaml
+type: custom:tunein-card
+entity: media_player.tunein
+attributes:
+  - media_show
+  - media_songname
+```
+
+`attributes` takes any attributes of the media player, in the order to show them. Without it, the card shows the show and song. Empty ones are hidden. The card's title is the station name.
+
+The integration loads the card itself, so there is no dashboard resource to add. Reload the browser after installing or updating.
+
 ## Favorites entity
 
 `select.tunein_favorites` lists your favorites. Choosing one plays it on one speaker: the default media player.

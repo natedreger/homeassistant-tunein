@@ -4,6 +4,7 @@ Provides:
 - a media source (TuneIn favorites, categories and search) that any media
   player can browse;
 - a sidebar panel with search, favorites and a speaker picker;
+- a dashboard card;
 - a `media_player` entity that plays through the default media player;
 - a `select` entity listing the favorites;
 - `tunein_radio.play`, `add_favorite` and `remove_favorite` actions.
@@ -164,6 +165,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TuneInConfigEntry) -> bo
     entry.runtime_data = TuneInData(client, favorites, tracker)
 
     await _async_register_panel(hass)
+    await _async_register_card(hass, entry)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
@@ -198,6 +200,14 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
         module_url=f"{PANEL_STATIC_URL}/tunein-panel.js?v={version}",
         require_admin=False,
     )
+
+
+async def _async_register_card(hass: HomeAssistant, entry: TuneInConfigEntry) -> None:
+    """Load the dashboard card on every page (the panel serves the files)."""
+    version = (await async_get_integration(hass, DOMAIN)).version
+    url = f"{PANEL_STATIC_URL}/tunein-card.js?v={version}"
+    frontend.add_extra_js_url(hass, url)
+    entry.async_on_unload(lambda: frontend.remove_extra_js_url(hass, url))
 
 
 __all__ = ["Station", "TuneInConfigEntry", "get_data", "media_source_id"]
