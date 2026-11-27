@@ -26,6 +26,11 @@ SHOW_KEYS = ("program_title", "programName", "program_name", "show_name", "showN
 ARTIST_KEYS = ("artist", "artist_name", "artistName")
 SONG_KEYS = ("title", "song", "track", "song_title", "songTitle", "trackName")
 ALBUM_KEYS = ("album", "albumName", "album_name", "collectionName")
+# Artwork for the song, largest first where a source has several.
+ART_KEYS = (
+    "albumImageLarge", "albumImage", "artworkUrl", "artwork_url", "albumArt",
+    "album_art", "artwork", "cover", "coverUrl", "art",
+)
 # Parts of a response that describe what is coming, not what is on.
 UPCOMING_KEYS = {"next", "upnext", "upcoming", "playing_next"}
 # A latest track that started longer ago than this is no longer on air.
@@ -118,6 +123,7 @@ class NowPlaying(NamedTuple):
     artist: str | None = None
     song: str | None = None
     album: str | None = None
+    art: str | None = None  # image address
 
 
 def xml_to_data(body: bytes) -> dict[str, Any]:
@@ -171,6 +177,15 @@ def _artist(data: dict[str, Any]) -> str | None:
     return _text(data, ARTIST_KEYS)
 
 
+def _art(data: dict[str, Any]) -> str | None:
+    """The first artwork value that is a web address."""
+    for key in ART_KEYS:
+        value = data.get(key)
+        if isinstance(value, str) and value.startswith(("http://", "https://")):
+            return https(value)
+    return None
+
+
 def _started(data: dict[str, Any]) -> datetime | None:
     """Start time from `datetime`, `programStartTS` or `playedAt`."""
     try:
@@ -196,13 +211,13 @@ def _stale(data: dict[str, Any]) -> bool:
 
 
 def parse_station_api(data: Any) -> NowPlaying:
-    """Find the show, artist, song and album in a station API's response.
+    """Find the show, artist, song, album and artwork in a station API's response.
 
     The show and the song are each taken from the first object that has them,
     so lists must be newest first. A song needs both an artist and a title; the
-    album is the one given with that song.
+    album and artwork are those given with that song.
     """
-    show = artist = song = album = None
+    show = artist = song = album = art = None
     song_found = False
     for item in _objects(data):
         old = _stale(item)
@@ -217,7 +232,8 @@ def parse_station_api(data: Any) -> NowPlaying:
                 if not old:
                     artist, song = name, title
                     album = _text(item, ALBUM_KEYS)
-    return NowPlaying(show, artist, song, album)
+                    art = _art(item)
+    return NowPlaying(show, artist, song, album, art)
 
 
 def mime_for_formats(formats: str | None) -> str:
@@ -422,9 +438,9 @@ class TuneInClient:
         own, tunein = (
             NowPlaying() if isinstance(r, BaseException) else r for r in results
         )
-        # Artist, song and album stay together, so they can't come from different tracks.
+        # Artist, song, album and artwork stay together, so they can't come from different tracks.
         track = own if own.artist or own.song else tunein
-        return NowPlaying(own.show or tunein.show, track.artist, track.song, track.album)
+        return NowPlaying(own.show or tunein.show, track.artist, track.song, track.album, track.art)
 
     async def _from_tunein(self, station_id: str) -> NowPlaying:
         info = await self._station_info(station_id)
@@ -442,7 +458,13 @@ class TuneInClient:
                     (i.get("current_track") for i in body if i.get("guide_id") == station_id),
                     None,
                 )
-        return NowPlaying(show, artist, song, info.get("current_album") or None)
+        return NowPlaying(
+            show,
+            artist,
+            song,
+            info.get("current_album") or None,
+            https(info.get("current_album_art")) or None,
+        )
 
     async def _from_api(self, station_api: str | dict[str, str] | None) -> NowPlaying:
         """Read a station API: an address, or {"url", "body"} to POST JSON.

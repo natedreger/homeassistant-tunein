@@ -177,9 +177,10 @@ class TuneInPlayer(MediaPlayerEntity):
 
     @property
     def media_image_url(self) -> str | None:
-        """Station logo."""
-        playing = self._tracker.playing
-        return playing.get("image") or None if playing else None
+        """Artwork of the song on air, otherwise the station logo."""
+        if not (playing := self._tracker.playing):
+            return None
+        return self._tracker.track.art or playing.get("image") or None
 
     @property
     def extra_state_attributes(self) -> dict[str, str | None]:
@@ -191,6 +192,7 @@ class TuneInPlayer(MediaPlayerEntity):
             "player": self._tracker.player,
             "media_show": self._tracker.track.show,
             "media_song_name": self._tracker.track.song,
+            "media_album_art": self._tracker.track.art,
         }
 
     async def _async_forward(self, service: str, **data: Any) -> None:
