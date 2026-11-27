@@ -138,8 +138,12 @@ class TuneInPlayer(MediaPlayerEntity):
 
     @property
     def media_content_type(self) -> MediaType | None:
-        """Radio is music."""
-        return MediaType.MUSIC if self._tracker.playing else None
+        """A radio station.
+
+        Not "music": for that, Home Assistant's cards show the artist where
+        they would otherwise show the title.
+        """
+        return MediaType.CHANNEL if self._tracker.playing else None
 
     @property
     def media_content_id(self) -> str | None:

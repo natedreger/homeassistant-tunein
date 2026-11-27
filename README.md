@@ -75,7 +75,7 @@ attributes:
   - media_song_name
 ```
 
-`attributes` takes any attributes of the media player, in the order to show them. Without it, the card shows the show and song. Empty ones are hidden. The card's title is the station name.
+`attributes` takes any attributes of the media player, in the order to show them. Without it, the card shows the show and song. Empty ones are hidden. Set `show_labels: false` to list the values without their labels (also a switch in the card editor). The card's title is the station name; add `media_artist` to the list to show the artist.
 
 The integration loads the card itself, so there is no dashboard resource to add. Reload the browser after installing or updating.
 

@@ -36,13 +36,16 @@ class TuneInCard extends HTMLElement {
             },
           },
         },
+        { name: "show_labels", default: true, selector: { boolean: {} } },
       ],
+      computeLabel: ({ name }) =>
+        ({ entity: "Entity", attributes: "Attributes", show_labels: "Show labels" })[name],
     };
   }
 
   setConfig(config) {
     if (!config.entity?.startsWith("media_player.")) throw new Error("Choose a media player entity");
-    this._config = { attributes: DEFAULT_ATTRIBUTES, ...config };
+    this._config = { attributes: DEFAULT_ATTRIBUTES, show_labels: true, ...config };
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
     this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div id="player"></div><dl></dl></ha-card>`;
     this._player = null;
@@ -79,20 +82,24 @@ class TuneInCard extends HTMLElement {
       .map((name) => [name, attributes[name]])
       .filter(([, value]) => value !== undefined && value !== null && value !== "");
     const list = this.shadowRoot.querySelector("dl");
+    const labels = this._config.show_labels !== false;
+    list.className = labels ? "" : "plain";
     list.replaceChildren(
       ...rows.flatMap(([name, value]) => {
         const term = document.createElement("dt");
         term.textContent = label(name);
         const text = document.createElement("dd");
         text.textContent = Array.isArray(value) ? value.join(", ") : String(value);
-        return [term, text];
+        term.className = text.className = name;
+        return labels ? [term, text] : [text];
       })
     );
     list.hidden = !rows.length;
   }
 
   // The entity's title also holds the song and artist, for the stock cards.
-  // Here those have their own places, so the title is just the station.
+  // Here those have their own places, so the title is just the station, with no
+  // artist line under it.
   _playerHass(state) {
     const station = state?.attributes.station_name;
     if (!station) return this._hass;
@@ -101,7 +108,7 @@ class TuneInCard extends HTMLElement {
       ...this._hass,
       states: {
         ...this._hass.states,
-        [id]: { ...state, attributes: { ...state.attributes, media_title: station } },
+        [id]: { ...state, attributes: { ...state.attributes, media_title: station, media_artist: undefined } },
       },
     };
   }
@@ -111,8 +118,13 @@ const STYLE = `
   ha-card { overflow: hidden; }
   /* The media control card sits inside this one, so it has no frame of its own. */
   #player { --ha-card-border-width: 0; --ha-card-box-shadow: none; --ha-card-border-radius: 0; }
-  dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin: 0; padding: 12px 16px 16px; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; align-items: baseline; margin: 0; padding: 12px 16px 16px; }
   dl[hidden] { display: none; }
+  dl.plain { grid-template-columns: 1fr; }
+  /* Stepping down from the station name, which the media control card shows at 1.2em. */
+  .media_show { font-size: 1.1em; }
+  .media_song_name { font-size: 1em; }
+  .media_artist, .media_album_name { font-size: 0.85em; }
   dt { color: var(--secondary-text-color); }
   dd { margin: 0; color: var(--primary-text-color); overflow-wrap: anywhere; }
 `;
