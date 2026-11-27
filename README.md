@@ -39,7 +39,7 @@ These come from TuneIn, which only has them for some stations. You can override 
 
 The title (`media_title`) is the station, song and artist ("KCRW · Largate - Kali Uchis"). The station name alone is in the `station_name` attribute.
 
-To set a station's API, use **Configure → Station API** on the integration. Pick a favorite or type a station ID, and enter the address. Leave the address blank to remove it. No addresses are built in.  This can be obtained by asking an AI service to find them for you.
+To set a station's API, use **Configure → Station API** on the integration. Pick a favorite or type a station ID, and enter the address. Leave the address blank to remove it. No addresses are built in. This can be obtained by asking an AI service to find them for you.
 
 What the station API provides takes precedence over TuneIn; TuneIn fills in the rest.
 
